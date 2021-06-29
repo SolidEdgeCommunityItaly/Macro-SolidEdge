@@ -1,0 +1,41 @@
+<HTML><HEAD>
+   <HTA:APPLICATION
+   ID = "oApp"
+   APPLICATIONNAME = "Example"
+   BORDER = "thick"
+   CAPTION = "yes"
+   ICON = "app.ico"
+   SHOWINTASKBAR = "yes"
+   SINGLEINSTANCE = "yes"
+   SYSMENU = "yes"
+   WINDOWSTATE = "normal"
+   SCROLL = "yes"
+   SCROLLFLAT = "yes"
+   VERSION = "1.0"
+   INNERBORDER = "yes"
+   SELECTION = "no"
+   MAXIMIZEBUTTON = "yes"
+   MINIMIZEBUTTON = "yes"
+   NAVIGABLE = "yes"
+   CONTEXTMENU = "yes"
+   BORDERSTYLE = "normal"
+   >
+
+   <SCRIPT language="vbscript">
+   ' NB: language="vbscript" e non javascript
+   sub SimpleExeample()
+     document.body.children.Item(0).innerHTML = "<form name=myform><label for=chk1><input type=checkbox name=chk1 id=chk1 />Check me</label><br><br><button onclick='alert(myform.chk1.checked)'>Show if checked</button></form>"
+   end sub
+   </SCRIPT>
+
+</HEAD>
+<BODY onLoad="SimpleExeample()">
+<div>
+onLoad this content will be overwritten.
+</div>
+<p>Esempio di applicazione hta.</p>
+<p>Questa tecnologia è obsoleta e non è più manutenzionata da Microsoft.</p>
+<p><a href="https://en.wikipedia.org/wiki/HTML_Application">https://en.wikipedia.org/wiki/HTML_Application</a></p>
+<p><a href="https://msdn.microsoft.com/en-us/library/ms536471(VS.85).aspx">https://msdn.microsoft.com/en-us/library/ms536471(VS.85).aspx</a></p>
+</BODY>
+</HTML>
