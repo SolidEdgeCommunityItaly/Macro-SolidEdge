@@ -26,7 +26,7 @@ Sub Main()
         "Immettere il percorso completo del file dft:"
     q = InputBox(Message, Title, "")
     
-    If q="" Then
+    If q = "" Then
         Exit Sub
     End If
 
@@ -49,7 +49,7 @@ Sub Main()
         q = InputBox(Message, Title, "")
         inputLink =  replace(q, """", "")
         
-        If inputLink="" Then
+        If inputLink = "" Then
             Exit Sub
         End If
         

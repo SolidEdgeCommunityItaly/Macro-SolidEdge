@@ -18,9 +18,13 @@ curPath = Left(Wscript.ScriptFullName, InStrRev(Wscript.ScriptFullName, "\") -1 
 
 Include(curPath & "\" & "function_lib.vbs")
 
-Dim Lib
-Set Lib = New function_lib
+Dim Libr
+Set Libr = New function_lib
 
 ' test
-Lib.Test()
-MsgBox(Lib.GetExtensionFromFilename("function_lib.vbs"))
+Libr.Test()
+MsgBox(Libr.GetExtensionFromFilename("function_lib.vbs"))
+
+
+
+Set Libr = Nothing

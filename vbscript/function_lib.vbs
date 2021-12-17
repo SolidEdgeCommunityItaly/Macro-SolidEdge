@@ -5,9 +5,11 @@ Option Explicit
 ' How include this function lib:
 ' see and copy from "function_lib_execute_test.vbs"
 
+' v.1.1 Add fso (File System Object) gesture and code cleaned
+
 If Wscript.ScriptName = "function_lib.vbs" Then
 	Dim answer
-	answer = MsgBox ("Questo script è una libreria, non lanciare direttamente." & vbCrLf & "'Yes' per chiudere, 'No' per eseguire i test di funzionamento." &_
+	answer = MsgBox ("Script di tipo libreria: non lanciare direttamente." & vbCrLf & "'Yes' per chiudere, 'No' per eseguire i test di funzionamento." &_
 	vbCrLf & vbCrLf &_
 	"This script is a Library: don't run it directly." & vbCrLf & "'Yes' to close, 'No' for launch internal testing." &_
 	"" , vbYesNo, "function_lib.vbs")
@@ -17,27 +19,33 @@ If Wscript.ScriptName = "function_lib.vbs" Then
 		Dim this_lib
 		Set this_lib = New function_lib
 		
-		MsgBox "Test GetExtensionFromFilename(""ABC123456.pdf""): " & vbcrlf & this_lib.GetExtensionFromFilename("ABC123456.pdf") , vbOKOnly, "function_lib.vbs"
-		MsgBox "Test GetExtensionFromFilename(""noextension""): " & vbcrlf & this_lib.GetExtensionFromFilename("noextension") , vbOKOnly, "function_lib.vbs"
-		MsgBox "Test RegExpTest ok: "   & vbcrlf & this_lib.RegExpTest("^[0-9A-Z]{9}(_[^_]+)?(\.(pdf|zip))", "ABC123456.pdf") , vbOKOnly, "function_lib.vbs"
-		MsgBox "Test RegExpTest null: " & vbcrlf & this_lib.RegExpTest("^[0-9A-Z]{9}(_[^_]+)?(\.(pdf|zip))", "zABC123456.pdf") , vbOKOnly, "function_lib.vbs"
+		MsgBox "Test GetExtensionFromFilename(""ABC123456.pdf""): " & vbCrLf & this_lib.GetExtensionFromFilename("ABC123456.pdf") , vbOKOnly, "function_lib.vbs"
+		MsgBox "Test GetExtensionFromFilename(""noextension""): " & vbCrLf & this_lib.GetExtensionFromFilename("noextension") , vbOKOnly, "function_lib.vbs"
+		MsgBox "Test RegExpTest ok: "   & vbCrLf & this_lib.RegExpTest("^[0-9A-Z]{9}(_[^_]+)?(\.(pdf|zip))", "ABC123456.pdf") , vbOKOnly, "function_lib.vbs"
+		MsgBox "Test RegExpTest null: " & vbCrLf & this_lib.RegExpTest("^[0-9A-Z]{9}(_[^_]+)?(\.(pdf|zip))", "zABC123456.pdf") , vbOKOnly, "function_lib.vbs"
+		MsgBox "Test zeropad(""005"", 2)" & vbCrLf & this_lib.zeropad("005", 2) , vbOKOnly, "function_lib.vbs"
 		
 		Set this_lib = Nothing
 	End If
 End If
 
+
 Class function_lib
+	Public fso
+	
+	' SolidEdgeConstants.ModelMemberComponentTypeConstants
+	Public seShowPart, seHidePart, seSectionPart, seUndefinedDisplay 
+	Public seSolidBodyMemberType, seTubeCenterlineMemberType
+	Public seOccurrences
+
 	Private Sub class_Initialize
 		' Called automatically when class is created
 		
 		' === CONSTANTS - Costanti ===
 		' Constant not allowed in Class
 		'https://stackoverflow.com/questions/21052084/constant-inside-class
-		
+	
 		' SolidEdgeConstants.ModelMemberComponentTypeConstants
-		Dim seShowPart, seHidePart, seSectionPart, seUndefinedDisplay 
-		Dim seSolidBodyMemberType, seTubeCenterlineMemberType
-		Dim seOccurrences
 		seShowPart = 0
 		seHidePart = 1
 		seSectionPart = 2
@@ -48,11 +56,16 @@ Class function_lib
 		'SolidEdgeFramework.ObjectType
 		seOccurrences = -825730197
 		
+		' Where fso is used:
+		Set fso = CreateObject("Scripting.FileSystemObject")
+
 	End Sub
 	
 	
 	Private Sub class_Terminate
 		' Called automatically when all references to class instance are removed
+		
+		Set fso = Nothing
 	End Sub
 	
 	
@@ -77,13 +90,22 @@ Class function_lib
 		' Dim RetStr
 		' For Each Match in Matches   ' Iterate Matches collection.
 		' 	RetStr = RetStr & Match.FirstIndex & ". Match Value is '"
-		' 	RetStr = RetStr & Match.Value  ' non so perchè ma ne trova 2 e il secondo è vuoto
+		' 	RetStr = RetStr & Match.Value  ' non so perche' ma ne trova 2 e il secondo e' vuoto
 		' 	'RetStr = Match.Value 
 		' Next
 		' Msgbox(RetStr)
 		If Matches.Count > 0 Then
 			RegExpTest = Matches.Item(0).Value ' 0 = First
 		End If
+	End Function
+
+
+	Public Function zeropad(ByVal txt, ByVal length)
+		' Antepone gli zeri a un testo `txt` per una lunghezza totale del testo di lunghezza `length`
+		
+		' Funzione String(n, char): ripere n volte il carattere char
+		' Funzione Right(stringa, n): restituisce gli n caratteri piÃ¹ a destra della stringa es: Right("005", 2) --> "05"
+		zeropad = Right(String(length, "0") & txt, length)
 	End Function
 	
 	
@@ -152,11 +174,29 @@ Class function_lib
 	
 	
 	' === FILES ===
+
+	' Create folder(s) if not exists
+	' from: http://stackoverflow.com/questions/4407386/help-to-create-folder1-folder2-in-windows-using-vbscript-both-the-folders-not
+	Public Sub BuildFullPath(ByVal FullPath)
+		If Not fso.FolderExists(FullPath) Then
+			BuildFullPath(fso.GetParentFolderName(FullPath))
+			fso.CreateFolder(FullPath)
+		End If
+	End Sub
+
+	' Elimina un file se esiste.
+	Public Sub DeleteFileIfExists(ByVal FullPathFile)
+		If fso.FileExists (FullPathFile) Then
+			Del = Fso.DeleteFile(FullPathFile)
+		End If
+	End Sub
+
+	' non usare. Corretto: Libr.fso.FileExists(filename)
 	Public Function file_exist(ByVal filename)
-		Dim fso
-		Set fso = CreateObject("Scripting.FileSystemObject")
+		' Dim fso
+		' Set fso = CreateObject("Scripting.FileSystemObject")
 		file_exist = fso.FileExists(filename)
-		Set fso = Nothing
+		' Set fso = Nothing
 	End Function
 	
 	'Function GetFilenameFromPath(ByVal strPath As String) As String
@@ -184,8 +224,7 @@ Class function_lib
 	
 	
 	Private Function ReadTextFile(ByVal filepath)
-		Dim fso, f, s
-		Set fso = CreateObject("Scripting.FileSystemObject")
+		Dim f, s
 		Set f = fso.OpenTextFile(filepath, 1) ' in Read Only
 		s = f.ReadAll()
 		f.Close 
@@ -215,18 +254,17 @@ Class function_lib
 		Const ForAppending = 8
 		
 		Dim intEqualPos
-		Dim objFSO, objIniFile
+		Dim objIniFile
 		Dim strFilePath, strKey, strLeftString, strLine, strSection
-		
-		Set objFSO = CreateObject( "Scripting.FileSystemObject" )
 		
 		ReadIni     = ""
 		strFilePath = Trim( myFilePath )
 		strSection  = Trim( mySection )
 		strKey      = Trim( myKey )
 		
-		If objFSO.FileExists( strFilePath ) Then
-			Set objIniFile = objFSO.OpenTextFile( strFilePath, ForReading, False )
+		' Msgbox(seOccurrences)
+		If fso.FileExists( strFilePath ) Then
+			Set objIniFile = fso.OpenTextFile( strFilePath, ForReading, False )
 			Do While objIniFile.AtEndOfStream = False
 				strLine = Trim( objIniFile.ReadLine )
 				
@@ -292,7 +330,7 @@ Class function_lib
 		
 		Dim blnInSection, blnKeyExists, blnSectionExists, blnWritten
 		Dim intEqualPos
-		Dim objFSO, objNewIni, objOrgIni, wshShell
+		Dim objNewIni, objOrgIni, wshShell
 		Dim strFilePath, strFolderPath, strKey, strLeftString
 		Dim strLine, strSection, strTempDir, strTempFile, strValue
 		
@@ -301,14 +339,13 @@ Class function_lib
 		strKey      = Trim( myKey )
 		strValue    = Trim( myValue )
 		
-		Set objFSO   = CreateObject( "Scripting.FileSystemObject" )
 		Set wshShell = CreateObject( "WScript.Shell" )
 		
 		strTempDir  = wshShell.ExpandEnvironmentStrings( "%TEMP%" )
-		strTempFile = objFSO.BuildPath( strTempDir, objFSO.GetTempName )
+		strTempFile = fso.BuildPath( strTempDir, fso.GetTempName )
 		
-		Set objOrgIni = objFSO.OpenTextFile( strFilePath, ForReading, True )
-		Set objNewIni = objFSO.CreateTextFile( strTempFile, False, False )
+		Set objOrgIni = fso.OpenTextFile( strFilePath, ForReading, True )
+		Set objNewIni = fso.CreateTextFile( strTempFile, False, False )
 		
 		blnInSection     = False
 		blnSectionExists = False
@@ -318,13 +355,12 @@ Class function_lib
 		
 		' Check if path to INI file exists, quit if not
 		strFolderPath = Mid( strFilePath, 1, InStrRev( strFilePath, "\" ) )
-		If Not objFSO.FolderExists ( strFolderPath ) Then
+		If Not fso.FolderExists ( strFolderPath ) Then
 			WScript.Echo "Error: WriteIni failed, folder path (" _
 			& strFolderPath & ") to ini file " _
 			& strFilePath & " not found!"
 			Set objOrgIni = Nothing
 			Set objNewIni = Nothing
-			Set objFSO    = Nothing
 			WScript.Quit 1
 		End If
 		
@@ -386,13 +422,12 @@ Class function_lib
 		objNewIni.Close
 		
 		' Delete old INI file
-		objFSO.DeleteFile strFilePath, True
+		fso.DeleteFile strFilePath, True
 		' Rename new INI file
-		objFSO.MoveFile strTempFile, strFilePath
+		fso.MoveFile strTempFile, strFilePath
 		
 		Set objOrgIni = Nothing
 		Set objNewIni = Nothing
-		Set objFSO    = Nothing
 		Set wshShell  = Nothing
 	End Sub
 	
@@ -433,7 +468,7 @@ Class function_lib
 	' === NOTA BENE: Da SolidEdge ST10, 
 	' === dopo l'installazione principale e di ogni Maintenance Pack (MP)
 	' === SolidEdgeFileProperties "PropAuto.dll" va ri-registrato
-	' === con una utility che non è presente in questo reposity (non ho verificato il copyright)
+	' === con una utility che non e' presente in questo reposity (non ho verificato il copyright)
 	Public Function FilePropGet(ByVal FullFilePath, ByVal Scheda, ByVal Name)
 		If Scheda = "" Then
 			Scheda = "Custom"
@@ -465,7 +500,7 @@ Class function_lib
 	
 	Public Sub FilePropSet(ByVal File, ByVal Scheda, ByVal name, ByVal value, ByVal ProcessFamilyOfAssembly)
 		'Todo: fare un'altra funzione dove al posto di chiamare la funzione per ogni campo-valore, passo direttamente una matrice di campi e valori
-		' dovrei così impiegare meno tempo infatti ora esegue un -apri file, salva, chiudi- per ogni prop sullo stesso file
+		' dovrei cosi' impiegare meno tempo infatti ora esegue un -apri file, salva, chiudi- per ogni prop sullo stesso file
 		Dim objProps 	'As Object
 		Dim objProp 	'As Object
 		Dim FamAsm 		'As Boolean
@@ -489,7 +524,7 @@ Class function_lib
 		'If FamAsm Then
 		'    Call objProps.GetFamilyOfAssemblyMemberNames(File, MemberCount, MemberNames)
 		'    If Not ProcessFamilyOfAssembly Then
-		'        MsgBox ("Attenzione: l'assieme contiente una Famiglia di assimi. N° membri: " & MemberCount & vbCrLf & "Verrano saltati, per processarli chiamare la funzione con" & vbCrLf & '"ProcessFamilyOfAssembly = True ")
+		'        MsgBox ("Attenzione: l'assieme contiente una Famiglia di assimi. N. membri: " & MemberCount & vbCrLf & "Verrano saltati, per processarli chiamare la funzione con" & vbCrLf & '"ProcessFamilyOfAssembly = True ")
 		'    Else
 		'    
 		'    End If
@@ -526,8 +561,8 @@ Class function_lib
 		Dim objProps    'As SolidEdgeFileProperties.Properties
 		Dim objProp     'As Solidedgefileproperties.Property
 		Title = "SetHardwareFile"
-		'  Se il file è in sola lettura, toglie readonly
-		' verrà di seguito reimpostato
+		'  Se il file e' in sola lettura, toglie readonly
+		' verra' di seguito reimpostato
 		' TODO: creare l'oggeto FileSystem
 		'If FileSystem.GetAttr(FullFileName) = (33 Or 1) Then
 		'	Call MsgBox("file in sola lettura; interrompere a mano VBA x uscire, OK per procedere", Title)
@@ -588,7 +623,7 @@ Class function_lib
 		sql = ReadTextFile(fileSql)
 		' e.g. of sql file:  select * from table where q1 = '{0}' and q2 = '{1}' ... ;
 		
-		i=0
+		i = 0
 		For Each param In params 
 			param = Replace(param,"'","''") ' escape apos
 			param = Replace(param, "*", "%")
@@ -600,7 +635,7 @@ Class function_lib
 				sql = Replace(sql, "<TAG2>", param)
 				sql = Replace(sql, "{1}", param)
 			Else
-				sql = Replace(sql, "{"&i&"}", param)
+				sql = Replace(sql, "{" & i & "}", param)
 			End If
 			
 			i = i + 1
@@ -624,10 +659,10 @@ Class function_lib
 		'msgbox("rs.State:" & rs.State)			' return 0: close; 1: Open
 		
 		If rs.State = 1 Then				' questo dovrebbe consentire insert e update senza restituzione di recordset
-			If Not (rs.EOF Or rs.BOF) Then	' se non è stata restituita una tabella vuota
+			If Not (rs.EOF Or rs.BOF) Then	' se non e' stata restituita una tabella vuota
 				Dim arrayFields()
-				ReDim arrayFields( rs.Fields.Count-1 ) ' nuovo indice massimo
-				For i = 0 To rs.Fields.Count-1
+				ReDim arrayFields( rs.Fields.Count - 1 ) ' nuovo indice massimo
+				For i = 0 To rs.Fields.Count - 1
 					arrayFields(i) = rs(i).Name
 				Next
 				SqlToArray = Array( arrayFields, rs.GetRows() )
@@ -645,7 +680,7 @@ Class function_lib
 	
 	'Funzione di debug che mostra una msgbox contenente i dati per capire quali dati ho. usare per recordset piccoli
 	Public Sub SqlToArray_dbg(ByVal arrayTab)
-		Dim campi, dati
+		Dim campi, dati, txt, r, c
 		campi = arrayTab(0)
 		dati  = arrayTab(1)
 		If IsArray(dati) Then
